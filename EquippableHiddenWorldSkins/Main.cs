@@ -11,7 +11,6 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Text;
 using UnityEngine;
-using static Xsolla.XsollaPurchase.VirtualItems;
 using Object = UnityEngine.Object;
 
 namespace EquippableHiddenWorldSkins
@@ -19,7 +18,7 @@ namespace EquippableHiddenWorldSkins
     [BepInPlugin("com.aidanamite.EquippableHiddenWorldSkins", "Equippable HW Skins", VERSION)]
     public class Main : BaseUnityPlugin
     {
-        public const string VERSION = "1.0.0";
+        public const string VERSION = "1.0.1";
 
         public static UserItemData HiddenWorldSkin;
         public void Awake()
@@ -135,5 +134,26 @@ namespace EquippableHiddenWorldSkins
         }
         [HarmonyPatch("FinishMenuItems")]
         static void Prefix(KAUISelectDragonMenu __instance) => added.GetOrCreateValue(__instance).Clear();
+    }
+
+    [HarmonyPatch(typeof(SanctuaryPet), "UpdateMaterials")]
+    static class Patch_FixGlowWeirdness
+    {
+        static void Prefix(SanctuaryPet __instance)
+        {
+            if (__instance.pData?.Accessories == null)
+                return;
+            var skin = __instance.GetCustomSkinData("HWGlow");
+            if (skin != null && skin._ApplyGlowParameters && !string.IsNullOrEmpty(skin._ResourcePath))
+            {
+                var path = skin._ResourcePath + "&";
+                foreach (var acc in __instance.pData.Accessories)
+                    if (!string.IsNullOrEmpty(acc?.Geometry) && acc.Geometry.StartsWith(path,StringComparison.OrdinalIgnoreCase))
+                    {
+                        __instance.mApplyGlowSkinParameters = true;
+                        break;
+                    }
+            }
+        }
     }
 }
